@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CRUD Funcionários</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2rem;
+      background: #f9f9f9;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    form {
+      background: #fff;
+      padding: 1rem;
+      border-radius: 6px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      max-width: 600px;
+      margin: 0 auto 2rem auto;
+    }
+    form input, form button {
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    form button {
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s ease;
+    }
+    form button:hover {
+      background: #0056b3;
+    }
+    table {
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 0.75rem 1rem;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    button.edit, button.delete {
+      padding: 0.3rem 0.6rem;
+      border: none;
+      cursor: pointer;
+      border-radius: 3px;
+      color: white;
+    }
+    button.edit {
+      background-color: #ffc107;
+      margin-right: 0.3rem;
+    }
+    button.delete {
+      background-color: #dc3545;
+    }
+    button.edit:hover {
+      background-color: #e0a800;
+    }
+    button.delete:hover {
+      background-color: #c82333;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>CRUD Funcionários</h1>
+
+  <form id="formFuncionario">
+    <input type="hidden" id="funcionarioId" />
+    <input type="text" id="nome" placeholder="Nome" required />
+    <input type="text" id="cpf" placeholder="CPF" required />
+    <input type="email" id="email" placeholder="Email" required />
+    <input type="text" id="cargo" placeholder="Cargo" required />
+    <input type="number" id="salario" placeholder="Salário" required step="0.01" />
+    <button type="submit">Salvar</button>
+    <button type="button" id="btnCancelar" style="display:none; margin-top:0.5rem; background:#6c757d;">Cancelar</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>CPF</th>
+        <th>Email</th>
+        <th>Cargo</th>
+        <th>Salário</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="listaFuncionarios">
+      <!-- Funcionários serão listados aqui -->
+    </tbody>
+  </table>
+
+  <script>
+    const apiBase = 'http://localhost:3001/funcionarios';
+
+    const form = document.getElementById('formFuncionario');
+    const inputId = document.getElementById('funcionarioId');
+    const inputNome = document.getElementById('nome');
+    const inputCpf = document.getElementById('cpf');
+    const inputEmail = document.getElementById('email');
+    const inputCargo = document.getElementById('cargo');
+    const inputSalario = document.getElementById('salario');
+    const btnCancelar = document.getElementById('btnCancelar');
+    const listaFuncionarios = document.getElementById('listaFuncionarios');
+
+    // Carrega lista de funcionários
+    async function carregarFuncionarios() {
+      try {
+        const res = await fetch(apiBase);
+        const funcionarios = await res.json();
+
+        listaFuncionarios.innerHTML = '';
+
+        funcionarios.forEach(f => {
+          const tr = document.createElement('tr');
+
+          tr.innerHTML = `
+            <td>${f.nome}</td>
+            <td>${f.cpf}</td>
+            <td>${f.email}</td>
+            <td>${f.cargo}</td>
+            <td>R$ ${f.salario.toFixed(2)}</td>
+            <td>
+              <button class="edit" onclick="editarFuncionario(${f.id})">Editar</button>
+              <button class="delete" onclick="excluirFuncionario(${f.id})">Excluir</button>
+            </td>
+          `;
+
+          listaFuncionarios.appendChild(tr);
+        });
+
+      } catch (error) {
+        alert('Erro ao carregar funcionários: ' + error);
+      }
+    }
+
+    // Cria ou atualiza funcionário
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const funcionario = {
+        nome: inputNome.value,
+        cpf: inputCpf.value,
+        email: inputEmail.value,
+        cargo: inputCargo.value,
+        salario: parseFloat(inputSalario.value),
+      };
+
+      const id = inputId.value;
+
+      try {
+        if (id) {
+          // Atualizar
+          const res = await fetch(`${apiBase}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(funcionario)
+          });
+
+          if (!res.ok) throw new Error('Erro ao atualizar funcionário');
+          alert('Funcionário atualizado com sucesso!');
+        } else {
+          // Criar
+          const res = await fetch(apiBase, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(funcionario)
+          });
+
+          if (!res.ok) throw new Error('Erro ao criar funcionário');
+          alert('Funcionário criado com sucesso!');
+        }
+
+        limparFormulario();
+        carregarFuncionarios();
+
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+
+    // Limpa formulário
+    function limparFormulario() {
+      inputId.value = '';
+      form.reset();
+      btnCancelar.style.display = 'none';
+      form.querySelector('button[type=submit]').textContent = 'Salvar';
+    }
+
+    btnCancelar.addEventListener('click', limparFormulario);
+
+    // Editar funcionário
+    async function editarFuncionario(id) {
+      try {
+        const res = await fetch(`${apiBase}/${id}`);
+        if (!res.ok) throw new Error('Funcionário não encontrado');
+
+        const f = await res.json();
+
+        inputId.value = f.id;
+        inputNome.value = f.nome;
+        inputCpf.value = f.cpf;
+        inputEmail.value = f.email;
+        inputCargo.value = f.cargo;
+        inputSalario.value = f.salario;
+
+        btnCancelar.style.display = 'inline-block';
+        form.querySelector('button[type=submit]').textContent = 'Atualizar';
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    // Excluir funcionário
+    async function excluirFuncionario(id) {
+      if (!confirm('Tem certeza que deseja excluir este funcionário?')) return;
+
+      try {
+        const res = await fetch(`${apiBase}/${id}`, {
+          method: 'DELETE'
+        });
+        if (!res.ok) throw new Error('Erro ao excluir funcionário');
+
+        alert('Funcionário excluído com sucesso!');
+        carregarFuncionarios();
+
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    // Carrega lista ao iniciar
+    carregarFuncionarios();
+
+  </script>
+</body>
+</html>
+

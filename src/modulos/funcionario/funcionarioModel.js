@@ -27,7 +27,7 @@ const Funcionario = sequelize.define('Funcionario', {
   },
 }, {
   timestamps: true, // cria createdAt e updatedAt
-  tableName: 'Funcionarios', // nome da tabela no banco
+  tableName: 'funcionarios', // nome da tabela no banco
 });
 
 module.exports = Funcionario;
